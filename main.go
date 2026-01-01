@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -12,6 +13,17 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
+
+type GoogleUser struct {
+	ID            string `json:"id"`
+	Email         string `json:"email"`
+	VerifiedEmail bool   `json:"verified_email"`
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Picture       string `json:"picture"`
+	Locale        string `json:"locale"`
+}
 
 var OauthConfig *oauth2.Config
 
@@ -31,14 +43,11 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	token, err := OauthConfig.Exchange(ctx, code)
 	if err != nil {
-		http.Error(w, "Token exchange failed: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Token exchange failed", http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Println("token:", token)
-
 	client := OauthConfig.Client(ctx, token)
-
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
 		http.Error(w, "Failed to get user info", http.StatusInternalServerError)
@@ -46,9 +55,16 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("resp:", resp)
+	var user GoogleUser
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		http.Error(w, "Failed to decode user info", http.StatusInternalServerError)
+		return
+	}
 
-	w.Write([]byte("Login successful"))
+	fmt.Printf("User Data: %+v\n", user)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }
 
 func main() {
