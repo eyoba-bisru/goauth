@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
@@ -61,10 +62,42 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("User Data: %+v\n", user)
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user)
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	status      int
+	wroteHeader bool
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	if rw.wroteHeader {
+		return
+	}
+	rw.status = code
+	rw.wroteHeader = true
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func BetterLoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Initialize our custom wrapper
+		wrapped := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+
+		next.ServeHTTP(wrapped, r)
+
+		log.Printf(
+			"STATUS: %d | METHOD: %s | PATH: %s | DURATION: %s",
+			wrapped.status,
+			r.Method,
+			r.RequestURI,
+			time.Since(start),
+		)
+	})
 }
 
 func main() {
@@ -85,8 +118,16 @@ func main() {
 		Endpoint: google.Endpoint,
 	}
 
-	http.HandleFunc("/login", LoginHandler)
-	http.HandleFunc("/callback", CallbackHandler)
+	mux := http.NewServeMux()
+
+	wrappedMux := BetterLoggingMiddleware(mux)
+
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		log.Default().Println("/health")
+		w.Write([]byte("Alive"))
+	})
+	mux.HandleFunc("/login", LoginHandler)
+	mux.HandleFunc("/callback", CallbackHandler)
 
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -95,5 +136,5 @@ func main() {
 
 	fmt.Println("Server is running on port 8080")
 
-	log.Fatal(http.Serve(ln, nil))
+	log.Fatal(http.Serve(ln, wrappedMux))
 }
