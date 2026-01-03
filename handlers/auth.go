@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/eyoba-bisru/goauth/config"
@@ -44,8 +43,6 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to decode user info", http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Println(code)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user)

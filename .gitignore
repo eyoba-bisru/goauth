@@ -1,3 +1,11 @@
 .env
 tmp/
 vendor/
+logs/
+*.log
+*.tmp
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.bak

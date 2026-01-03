@@ -21,7 +21,9 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-func BetterLoggingMiddleware(next http.Handler) http.Handler {
+// BetterLoggingMiddleware returns a middleware handler that logs requests using the
+// provided logger. This allows logs to be written to a file or any other writer.
+func BetterLoggingMiddleware(logger *log.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -30,7 +32,7 @@ func BetterLoggingMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(wrapped, r)
 
-		log.Printf(
+		logger.Printf(
 			"STATUS: %d | METHOD: %s | PATH: %s | DURATION: %s",
 			wrapped.status,
 			r.Method,

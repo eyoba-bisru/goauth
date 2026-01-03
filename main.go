@@ -9,6 +9,7 @@ import (
 
 	"github.com/eyoba-bisru/goauth/config"
 	"github.com/eyoba-bisru/goauth/handlers"
+	"github.com/eyoba-bisru/goauth/logging"
 	"github.com/eyoba-bisru/goauth/middleware"
 	"github.com/joho/godotenv"
 )
@@ -24,10 +25,16 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	wrappedMux := middleware.BetterLoggingMiddleware(mux)
+	// Create application logger (writes to stdout + logs/server.log)
+	appLogger, closer, err := logging.NewLogger("logs/server.log")
+	if err != nil {
+		log.Fatalf("failed to initialize logger: %v", err)
+	}
+	defer closer()
+
+	wrappedMux := middleware.BetterLoggingMiddleware(appLogger, mux)
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		log.Default().Println("/health")
 		w.Write([]byte("Alive"))
 	})
 	mux.HandleFunc("/login", handlers.LoginHandler)
