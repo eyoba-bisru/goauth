@@ -1,0 +1,69 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "goauth API",
+    "version": "1.0.0",
+    "description": "Simple Google OAuth demo API"
+  },
+  "servers": [{ "url": "http://localhost:8080" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": { "description": "Alive" }
+        }
+      }
+    },
+    "/login": {
+      "get": {
+        "summary": "Start Google OAuth",
+        "responses": {
+          "302": { "description": "Redirect to Google auth" }
+        }
+      }
+    },
+    "/callback": {
+      "get": {
+        "summary": "OAuth callback",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User info JSON",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GoogleUser" }
+              }
+            }
+          },
+          "400": { "description": "Bad request" },
+          "500": { "description": "Server error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GoogleUser": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "verified_email": { "type": "boolean" },
+          "name": { "type": "string" },
+          "given_name": { "type": "string" },
+          "family_name": { "type": "string" },
+          "picture": { "type": "string", "format": "uri" },
+          "locale": { "type": "string" }
+        }
+      }
+    }
+  }
+}
